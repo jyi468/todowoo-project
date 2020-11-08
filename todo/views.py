@@ -1,6 +1,6 @@
 from django.db import IntegrityError
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout, authenticate
@@ -57,6 +57,24 @@ def currenttodos(request):
     # filter based on user and completed state
     todos = Todo.objects.filter(user=request.user, datecompleted__isnull=True)
     return render(request, 'todo/currenttodos.html', {'todos': todos})
+
+
+def viewtodo(request, todo_pk):
+    # Get to do with given pk that also matches current user foreign key
+    todo = get_object_or_404(Todo, pk=todo_pk, user=request.user)
+    if request.method == 'GET':
+        form = TodoForm(instance=todo)
+        return render(request, 'todo/viewtodo.html', {'todo': todo, 'form': form})
+    else:
+        try:
+            # lets django know this item already exists
+            # it will fill the form with the data in the to do object
+            form = TodoForm(request.POST, instance=todo)
+            form.save()
+            return redirect('currenttodos')
+        except ValueError:
+            return render(request, 'todo/viewtodo.html',
+                          {'todo': todo, 'form': form, 'error': 'Bad Info'})
 
 
 def createtodos(request):
